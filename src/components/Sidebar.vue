@@ -67,6 +67,11 @@
                           <input type="checkbox" v-model="state.showMessages">
                           <a class="check-font"> Messages </a>
                         </label>
+                        <label v-if="state.textMessages">
+                          <i class="fa fa-brain circle"></i>
+                          <input type="checkbox" v-model="state.showMessages">
+                          <a class="check-font"> Chatbot </a>
+                        </label>
                         <label>
                           <i class="fa fa-plane-departure circle"></i>
                           <input type="checkbox" v-model="state.showAttitude">
