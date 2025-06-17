@@ -53,6 +53,11 @@
                           <a class="check-font"> Radio Sticks </a>
                         </label>
                         <label>
+                          <i class="fa fa-comment circle"></i>
+                          <input type="checkbox" v-model="state.showChat">
+                          <a class="check-font"> Chat </a>
+                        </label>
+                        <label>
                           <i class="fa fa-compass circle"></i>
                           <input type="checkbox" v-model="state.showMagfit">
                           <a class="check-font"> Mag Fit Tool </a>
@@ -66,11 +71,6 @@
                           <i class="fa fa-comment circle"></i>
                           <input type="checkbox" v-model="state.showMessages">
                           <a class="check-font"> Messages </a>
-                        </label>
-                        <label v-if="state.textMessages">
-                          <i class="fa fa-brain circle"></i>
-                          <input type="checkbox" v-model="state.showMessages">
-                          <a class="check-font"> Chatbot </a>
                         </label>
                         <label>
                           <i class="fa fa-plane-departure circle"></i>
@@ -138,6 +138,7 @@ import Dropzone from './SideBarFileManager.vue'
 import MessageMenu from './SideBarMessageMenu.vue'
 import {store} from './Globals.js'
 import PlotSetup from './PlotSetup.vue'
+import ChatWidget from './widgets/ChatWidget.vue'
 
 export default {
     name: 'sidebar',
@@ -230,7 +231,7 @@ export default {
             this.downloadURL = URL.createObjectURL(this.blob)
         }
     },
-    components: {PlotSetup, MessageMenu, Dropzone}
+    components: {PlotSetup, MessageMenu, Dropzone, ChatWidget}
 }
 </script>
 <style scoped>
