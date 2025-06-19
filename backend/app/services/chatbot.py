@@ -105,19 +105,19 @@ class UAVChatbotService:
         Always be helpful, thorough, and explain your reasoning clearly.
         """
 
-    async def process_message(self, message: str, session_id: str, context_data: Optional[Dict[str, Any]] = None) -> str:
+    async def process_message(self, message: str, sessionId: str, contextData: Optional[Dict[str, Any]] = None) -> str:
         """Process a user message and return an agentic response."""
         
         # Get or create session
-        session = self.session_manager.get_session(session_id)
+        session = self.session_manager.get_session(sessionId)
         if not session:
-            session = self.session_manager.create_session(session_id, context_data)
+            session = self.session_manager.create_session(sessionId, contextData)
         
         # Add user message to session
-        self.session_manager.add_message(session_id, MessageRole.USER, message)
+        self.session_manager.add_message(sessionId, MessageRole.USER, message)
         
         # Prepare context for the LLM
-        context = self._prepare_context(session, context_data)
+        context = self._prepare_context(session, contextData)
         
         # Create messages for the agent
         messages = [
@@ -135,29 +135,29 @@ class UAVChatbotService:
             response_text = response.get("output", "I'm sorry, I couldn't process your request.")
             
             # Add assistant response to session
-            self.session_manager.add_message(session_id, MessageRole.ASSISTANT, response_text)
+            self.session_manager.add_message(sessionId, MessageRole.ASSISTANT, response_text)
             
             return response_text
             
         except Exception as e:
             error_message = f"I encountered an error while processing your request: {str(e)}"
-            self.session_manager.add_message(session_id, MessageRole.ASSISTANT, error_message)
+            self.session_manager.add_message(sessionId, MessageRole.ASSISTANT, error_message)
             return error_message
     
-    def _prepare_context(self, session: ChatSession, context_data: Optional[Dict[str, Any]]) -> str:
+    def _prepare_context(self, session: ChatSession, contextData: Optional[Dict[str, Any]]) -> str:
         """Prepare context information for the LLM."""
         context_parts = []
         
         # Add session context data
-        if session.context_data:
+        if session.contextData:
             context_parts.append("Session Context:")
-            for key, value in session.context_data.items():
+            for key, value in session.contextData.items():
                 context_parts.append(f"- {key}: {value}")
         
         # Add new context data
-        if context_data:
+        if contextData:
             context_parts.append("Current Context:")
-            for key, value in context_data.items():
+            for key, value in contextData.items():
                 context_parts.append(f"- {key}: {value}")
         
         return "\n".join(context_parts) if context_parts else "No additional context available."
@@ -174,10 +174,10 @@ class UAVChatbotService:
                 converted.append(SystemMessage(content=msg.content))
         return converted
     
-    def get_session_history(self, session_id: str) -> List[ChatMessage]:
+    def get_session_history(self, sessionId: str) -> List[ChatMessage]:
         """Get chat history for a session."""
-        return self.session_manager.get_session_history(session_id)
+        return self.session_manager.get_session_history(sessionId)
     
-    def update_session_context(self, session_id: str, context_data: Dict[str, Any]) -> bool:
+    def update_session_context(self, sessionId: str, contextData: Dict[str, Any]) -> bool:
         """Update the context data for a session."""
-        return self.session_manager.update_context(session_id, context_data) 
+        return self.session_manager.update_context(sessionId, contextData) 

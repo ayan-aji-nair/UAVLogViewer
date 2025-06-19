@@ -6,6 +6,8 @@
   "private": true,
   "scripts": {
     "dev": "node --max_old_space_size=4096 node_modules/webpack-dev-server/bin/webpack-dev-server.js --host 0.0.0.0 --progress --config build/webpack.dev.conf.js",
+    "dev:backend": "cd backend && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev:backend\"",
     "start": "npm run dev",
     "unit": "jest --config test/unit/jest.conf.js --coverage",
     "e2e": "node test/e2e/runner.js",

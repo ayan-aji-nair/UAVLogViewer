@@ -84,8 +84,10 @@ export default {
             this.newMessage = ''
 
             try {
+                // Get API URL from environment or use default
+                const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8000'
                 // Send to backend
-                const response = await fetch('/api/chat/message', {
+                const response = await fetch(`${apiUrl}/api/chat/message`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -97,14 +99,18 @@ export default {
                     })
                 })
 
-                if (!response.ok) throw new Error('Failed to send message')
+                if (!response.ok) {
+                    const errorText = await response.text()
+                    throw new Error(`HTTP ${response.status}: ${errorText}`)
+                }
 
                 const data = await response.json()
+                console.log('Backend response:', data) // Debug log
                 // Add bot response to messages
                 this.messages.push({
                     id: Date.now(),
                     role: 'assistant',
-                    content: data.message,
+                    content: data.message || 'No response received',
                     timestamp: new Date()
                 })
                 this.saveSession() // Save after adding bot response
@@ -119,7 +125,7 @@ export default {
                 this.messages.push({
                     id: Date.now(),
                     role: 'system',
-                    content: 'Sorry, there was an error processing your message.',
+                    content: `Error: ${error.message}`,
                     timestamp: new Date()
                 })
                 this.saveSession() // Save after adding error message

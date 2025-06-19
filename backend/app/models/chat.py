@@ -16,7 +16,7 @@ class ChatMessage(BaseModel):
     role: MessageRole
     content: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    session_id: str
+    sessionId: str
 
 
 class ChatSession(BaseModel):
@@ -24,17 +24,17 @@ class ChatSession(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     messages: List[ChatMessage] = Field(default_factory=list)
-    context_data: Optional[dict] = Field(default_factory=dict)  # For storing UAV log context
+    contextData: Optional[dict] = Field(default_factory=dict)  # For storing UAV log context
 
 
 class ChatRequest(BaseModel):
     message: str
-    session_id: Optional[str] = None
-    context_data: Optional[dict] = None  # Additional UAV log data to analyze
+    sessionId: Optional[str] = None
+    contextData: Optional[dict] = None  # Additional UAV log data to analyze
 
 
 class ChatResponse(BaseModel):
     message: str
-    session_id: str
+    sessionId: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     analysis_insights: Optional[List[str]] = Field(default_factory=list)  # Agent's insights about UAV data 

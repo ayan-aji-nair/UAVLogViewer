@@ -18,18 +18,18 @@ async def send_message(request: ChatRequest):
     """Send a message to the chatbot and get a response."""
     try:
         # Generate session ID if not provided
-        session_id = request.session_id or str(uuid.uuid4())
+        sessionId = request.sessionId or str(uuid.uuid4())
         
         # Process message with chatbot
         response_text = await chatbot_service.process_message(
             message=request.message,
-            session_id=session_id,
-            context_data=request.context_data
+            sessionId=sessionId,
+            contextData=request.contextData
         )
         
         return ChatResponse(
             message=response_text,
-            session_id=session_id
+            sessionId=sessionId
         )
     
     except Exception as e:
@@ -40,14 +40,14 @@ async def send_message(request: ChatRequest):
 async def stream_message(request: ChatRequest):
     """Stream a chatbot response token by token."""
     try:
-        session_id = request.session_id or str(uuid.uuid4())
+        sessionId = request.sessionId or str(uuid.uuid4())
         
         async def generate_stream():
             # Process message and stream response
             response_text = await chatbot_service.process_message(
                 message=request.message,
-                session_id=session_id,
-                context_data=request.context_data
+                sessionId=sessionId,
+                contextData=request.contextData
             )
             
             # Stream the response token by token
@@ -72,21 +72,21 @@ async def stream_message(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"Error streaming response: {str(e)}")
 
 
-@router.get("/history/{session_id}", response_model=List[ChatMessage])
-async def get_chat_history(session_id: str):
+@router.get("/history/{sessionId}", response_model=List[ChatMessage])
+async def get_chat_history(sessionId: str):
     """Get chat history for a specific session."""
     try:
-        history = chatbot_service.get_session_history(session_id)
+        history = chatbot_service.get_session_history(sessionId)
         return history
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving chat history: {str(e)}")
 
 
-@router.post("/context/{session_id}")
-async def update_context(session_id: str, context_data: dict):
+@router.post("/context/{sessionId}")
+async def update_context(sessionId: str, contextData: dict):
     """Update context data for a chat session."""
     try:
-        success = chatbot_service.update_session_context(session_id, context_data)
+        success = chatbot_service.update_session_context(sessionId, contextData)
         if success:
             return {"message": "Context updated successfully"}
         else:
@@ -96,11 +96,11 @@ async def update_context(session_id: str, context_data: dict):
 
 
 @router.post("/session")
-async def create_session(context_data: Optional[dict] = None):
+async def create_session(contextData: Optional[dict] = None):
     """Create a new chat session."""
     try:
-        session_id = str(uuid.uuid4())
-        chatbot_service.session_manager.create_session(session_id, context_data)
-        return {"session_id": session_id, "message": "Session created successfully"}
+        sessionId = str(uuid.uuid4())
+        chatbot_service.session_manager.create_session(sessionId, contextData)
+        return {"sessionId": sessionId, "message": "Session created successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating session: {str(e)}") 
