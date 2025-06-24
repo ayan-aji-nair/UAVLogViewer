@@ -35,10 +35,6 @@ import { store } from './Globals'
 import { MAVLink20Processor as MAVLink } from '../libs/mavlink'
 
 const worker = new Worker()
-
-worker.addEventListener('message', function (event) {
-})
-
 export default {
     name: 'Dropzone',
     data: function () {
@@ -54,8 +50,9 @@ export default {
             file: null,
             uploadStarted: false,
             uploadInProgress: false,
-            uploadTimeout: null,
-            eventListenerAdded: false
+            uploadCompleted: false,
+            eventListenerAdded: false,
+            uploadTimeout: null
         }
     },
     created () {
@@ -65,6 +62,10 @@ export default {
     beforeDestroy () {
         this.$eventHub.$off('open-sample')
         this.$eventHub.$off('messages', this.sendToBackend)
+        if (this.eventListenerAdded) {
+            this.$eventHub.$off('messagesDoneLoading', this.debouncedSendToBackend)
+            this.eventListenerAdded = false
+        }
         if (this.uploadTimeout) {
             clearTimeout(this.uploadTimeout)
         }
@@ -233,50 +234,51 @@ export default {
             document.body.removeChild(a)
             window.URL.revokeObjectURL(url)
         },
+        debouncedSendToBackend () {
+            if (this.uploadTimeout) {
+                clearTimeout(this.uploadTimeout)
+            }
+            this.uploadTimeout = setTimeout(() => {
+                this.sendToBackend()
+            }, 1000) // 1 second debounce
+        },
         sendToBackend () {
-            // Prevent multiple uploads
             if (this.uploadInProgress || this.uploadCompleted) {
-                console.log('Upload already in progress or completed, skipping...')
                 return
             }
-            // Add a small delay to ensure the page is stable
-            setTimeout(() => {
-                this.uploadInProgress = true
-                console.log('Starting upload...')
-                const payload = {
-                    messages: this.state.messages || {}
+            this.uploadInProgress = true
+            /*
+            const payload = {
+                messages: this.state.messages || {}
+            }
+            */
+            const payload = {
+                messages: {'yo': 'yo'}
+            }
+            fetch('http://localhost:8000/api/upload/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                this.uploadInProgress = false
+                this.uploadCompleted = true
+                if (response.ok) {
+                    return response.json()
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
                 }
-                console.log('Uploading messages to backend...', {
-                    messageCount: Object.keys(payload.messages).length
-                })
-                const request = new XMLHttpRequest()
-                request.timeout = 30000
-                request.onload = () => {
-                    this.uploadInProgress = false
-                    this.uploadCompleted = true
-                    if (request.status >= 200 && request.status < 400) {
-                        console.log('Messages uploaded successfully:', request.responseText)
-                    } else {
-                        console.log('Messages upload error:', request.status, request.responseText)
-                    }
-                }
-                request.onerror = (error) => {
-                    this.uploadInProgress = false
-                    console.log('Messages upload failed:', error)
-                }
-                request.ontimeout = () => {
-                    this.uploadInProgress = false
-                    console.log('Messages upload timeout after 30 seconds')
-                }
-                try {
-                    request.open('POST', 'http://localhost:8000/api/upload/messages')
-                    request.setRequestHeader('Content-Type', 'application/json')
-                    request.send(JSON.stringify(payload))
-                } catch (error) {
-                    this.uploadInProgress = false
-                    console.log('Error sending request:', error)
-                }
-            }, 2000) // 2 second delay to ensure page stability
+            })
+            .then(data => {
+                console.log('Background upload successful:', data)
+            })
+            .catch(error => {
+                this.uploadInProgress = false
+                console.log('Background upload failed:', error.message)
+            })
         }
     },
     mounted () {
@@ -316,10 +318,11 @@ export default {
             }
         }
         if (!this.eventListenerAdded) {
-            this.$eventHub.$on('messagesDoneLoading', this.sendToBackend)
+            this.$eventHub.$on('messagesDoneLoading', this.debouncedSendToBackend)
             this.eventListenerAdded = true
             console.log('Event listener added for messagesDoneLoading')
         }
+        // Handle upload worker responses
         const url = document.location.search.split('?file=')[1]
         if (url) {
             this.onLoadSample(decodeURIComponent(url))

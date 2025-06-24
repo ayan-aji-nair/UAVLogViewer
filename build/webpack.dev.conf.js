@@ -55,6 +55,12 @@ const devWebpackConfig = merge(baseWebpackConfig, {
     open: config.dev.autoOpenBrowser,
    // publicPath: config.dev.assetsPublicPath,
     proxy: config.dev.proxyTable,
+    watchOptions: {
+      ignored: [
+        path.resolve(__dirname, '../backend/messages'),
+        path.resolve(__dirname, '../backend/uploads')
+      ]
+    },
   },
   plugins: [
     new ESLintPlugin({fix: true}),

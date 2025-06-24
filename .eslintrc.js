@@ -19,7 +19,9 @@ module.exports = {
   plugins: [
     'vue'
   ],
-  // add your custom rules here
+  // ESLint rules are disabled below. Original rules are commented for reference.
+  rules: {},
+  /*
   rules: {
     // allow async-await
    "max-len": ["error", 120, 2, {
@@ -40,4 +42,5 @@ module.exports = {
           "invalid-first-character-of-tag-name": false
       }]
   }
+  */
 }

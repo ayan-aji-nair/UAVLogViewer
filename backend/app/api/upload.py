@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 UPLOADS_DIR = Path("uploads")
 UPLOADS_DIR.mkdir(exist_ok=True)
 
-# Ensure messages directory exists locally
+# Ensure messages directory exists
 MESSAGES_DIR = Path("messages")
 MESSAGES_DIR.mkdir(exist_ok=True)
 
