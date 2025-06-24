@@ -247,13 +247,8 @@ export default {
                 return
             }
             this.uploadInProgress = true
-            /*
             const payload = {
                 messages: this.state.messages || {}
-            }
-            */
-            const payload = {
-                messages: {'yo': 'yo'}
             }
             fetch('http://localhost:8000/api/upload/messages', {
                 method: 'POST',

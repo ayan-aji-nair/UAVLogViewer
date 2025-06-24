@@ -48,18 +48,40 @@ const devWebpackConfig = merge(baseWebpackConfig, {
       ],
     },
     hot: true,
-    static: "./",
+    liveReload: false,
+    static: [
+      {
+        directory: "./",
+        watch: {
+          ignored: [
+            path.resolve(__dirname, '../backend/messages/**'),
+            path.resolve(__dirname, '../backend/uploads/**')
+          ],
+        },
+      },
+    ],
+    watchFiles: {
+      paths: ['../**/*'],
+      options: {
+        ignored: [path.resolve(__dirname, '../backend/messages/**')],
+      },
+    },
     compress: true,
     host: HOST || config.dev.host,
     port: PORT || config.dev.port,
     open: config.dev.autoOpenBrowser,
    // publicPath: config.dev.assetsPublicPath,
     proxy: config.dev.proxyTable,
-    watchOptions: {
-      ignored: [
-        path.resolve(__dirname, '../backend/messages'),
-        path.resolve(__dirname, '../backend/uploads')
-      ]
+    setupMiddlewares: (middlewares, devServer) => {
+      // Add custom middleware to handle proxy errors gracefully
+      devServer.app.use((err, req, res, next) => {
+        if (err) {
+          console.log('Proxy error:', err.message);
+          return res.status(500).json({ error: 'Proxy error' });
+        }
+        next();
+      });
+      return middlewares;
     },
   },
   plugins: [

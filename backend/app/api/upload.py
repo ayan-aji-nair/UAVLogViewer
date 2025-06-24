@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
@@ -19,7 +19,7 @@ UPLOADS_DIR = Path("uploads")
 UPLOADS_DIR.mkdir(exist_ok=True)
 
 # Ensure messages directory exists
-MESSAGES_DIR = Path("messages")
+MESSAGES_DIR = Path("/tmp/messages")
 MESSAGES_DIR.mkdir(exist_ok=True)
 
 # Clear messages directory on startup
@@ -36,6 +36,11 @@ def clear_messages_directory():
 
 # Call cleanup on module import
 clear_messages_directory()
+
+def register_startup_cleanup(app: FastAPI):
+    @app.on_event("startup")
+    async def startup_event():
+        clear_messages_directory()
 
 class MessageData(BaseModel):
     """Model for incoming message data from frontend."""
