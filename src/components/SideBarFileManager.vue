@@ -52,7 +52,10 @@ export default {
             transferMessage: '',
             state: store,
             file: null,
-            uploadStarted: false
+            uploadStarted: false,
+            uploadInProgress: false,
+            uploadTimeout: null,
+            eventListenerAdded: false
         }
     },
     created () {
@@ -61,6 +64,10 @@ export default {
     },
     beforeDestroy () {
         this.$eventHub.$off('open-sample')
+        this.$eventHub.$off('messages', this.sendToBackend)
+        if (this.uploadTimeout) {
+            clearTimeout(this.uploadTimeout)
+        }
     },
     methods: {
         trimFile () {
@@ -225,6 +232,51 @@ export default {
             a.click()
             document.body.removeChild(a)
             window.URL.revokeObjectURL(url)
+        },
+        sendToBackend () {
+            // Prevent multiple uploads
+            if (this.uploadInProgress || this.uploadCompleted) {
+                console.log('Upload already in progress or completed, skipping...')
+                return
+            }
+            // Add a small delay to ensure the page is stable
+            setTimeout(() => {
+                this.uploadInProgress = true
+                console.log('Starting upload...')
+                const payload = {
+                    messages: this.state.messages || {}
+                }
+                console.log('Uploading messages to backend...', {
+                    messageCount: Object.keys(payload.messages).length
+                })
+                const request = new XMLHttpRequest()
+                request.timeout = 30000
+                request.onload = () => {
+                    this.uploadInProgress = false
+                    this.uploadCompleted = true
+                    if (request.status >= 200 && request.status < 400) {
+                        console.log('Messages uploaded successfully:', request.responseText)
+                    } else {
+                        console.log('Messages upload error:', request.status, request.responseText)
+                    }
+                }
+                request.onerror = (error) => {
+                    this.uploadInProgress = false
+                    console.log('Messages upload failed:', error)
+                }
+                request.ontimeout = () => {
+                    this.uploadInProgress = false
+                    console.log('Messages upload timeout after 30 seconds')
+                }
+                try {
+                    request.open('POST', 'http://localhost:8000/api/upload/messages')
+                    request.setRequestHeader('Content-Type', 'application/json')
+                    request.send(JSON.stringify(payload))
+                } catch (error) {
+                    this.uploadInProgress = false
+                    console.log('Error sending request:', error)
+                }
+            }, 2000) // 2 second delay to ensure page stability
         }
     },
     mounted () {
@@ -247,18 +299,26 @@ export default {
                 this.state.metadata = event.data.metadata
             } else if (event.data.messages) {
                 this.state.messages = event.data.messages
+                console.log('Messages received, emitting messages event')
                 this.$eventHub.$emit('messages')
             } else if (event.data.messagesDoneLoading) {
+                console.log('messagesDoneLoading received, emitting event')
                 this.$eventHub.$emit('messagesDoneLoading')
             } else if (event.data.messageType) {
                 this.state.messages[event.data.messageType] = event.data.messageList
+                console.log('Message type received, emitting messages event')
                 this.$eventHub.$emit('messages')
             } else if (event.data.files) {
                 this.state.files = event.data.files
                 this.$eventHub.$emit('messages')
             } else if (event.data.url) {
-                this.downloadFileFromURL(event.data.url)
+                this.downloadFileFromURL(event.damessageType.url)
             }
+        }
+        if (!this.eventListenerAdded) {
+            this.$eventHub.$on('messagesDoneLoading', this.sendToBackend)
+            this.eventListenerAdded = true
+            console.log('Event listener added for messagesDoneLoading')
         }
         const url = document.location.search.split('?file=')[1]
         if (url) {

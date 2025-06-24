@@ -58,3 +58,4 @@ logs/
 # Local development
 *.sqlite3
 *.db
+messages/

@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 from app.api.chat import router as chat_router
+from app.api.upload import router as upload_router
 from app.config import settings
 
 
@@ -47,6 +48,7 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(chat_router)
+app.include_router(upload_router)
 
 
 @app.get("/")
@@ -59,6 +61,10 @@ async def root():
             "chat": "/api/chat/message",
             "stream": "/api/chat/stream",
             "history": "/api/chat/history/{session_id}",
+            "upload_messages": "/api/upload/messages",
+            "get_messages": "/api/upload/messages/{file_id}",
+            "list_messages": "/api/upload/messages",
+            "delete_messages": "/api/upload/messages/{file_id}",
             "docs": "/docs"
         }
     }
