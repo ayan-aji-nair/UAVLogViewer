@@ -7,6 +7,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -18,11 +19,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create messages directory with proper permissions
-RUN mkdir -p /app/messages && chown -R appuser:appuser /app/messages
+# Create non-root user first
+RUN useradd -m -u 1000 appuser
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# Create directories with proper permissions
+RUN mkdir -p /app/messages /app/vectorstore /app/dataframes && chown -R appuser:appuser /app
+
+# Switch to non-root user
 USER appuser
 
 # Expose port

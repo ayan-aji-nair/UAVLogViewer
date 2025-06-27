@@ -247,6 +247,11 @@ export default {
                 return
             }
             this.uploadInProgress = true
+            
+            // Emit processing started event
+            console.log('SideBarFileManager: Emitting fileProcessingStarted event')
+            this.$eventHub.$emit('fileProcessingStarted')
+            
             const payload = {
                 messages: this.state.messages || {}
             }
@@ -269,10 +274,16 @@ export default {
             })
             .then(data => {
                 console.log('Background upload successful:', data)
+                // Emit processing completed event
+                this.$eventHub.$emit('fileProcessingCompleted', data)
+                console.log('SideBarFileManager: Emitting fileProcessingCompleted event')
             })
             .catch(error => {
                 this.uploadInProgress = false
                 console.log('Background upload failed:', error.message)
+                // Emit processing failed event
+                console.log('SideBarFileManager: Emitting fileProcessingFailed event')
+                this.$eventHub.$emit('fileProcessingFailed', error.message)
             })
         }
     },

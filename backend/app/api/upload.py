@@ -8,6 +8,12 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 import logging
+import pickle
+from ..services.parser import Parser
+from ..services.dataframe_storage import save_dataframes_to_pickle
+from ..services.ardupilot_scraper import scrape_ardupilot_log_messages, insert_into_vector_db
+from ..services.vector_initializer import start_vector_db_initialization, get_vector_db_status
+import os
 
 router = APIRouter(prefix="/api/upload", tags=["upload"])
 
@@ -41,6 +47,28 @@ def register_startup_cleanup(app: FastAPI):
     @app.on_event("startup")
     async def startup_event():
         clear_messages_directory()
+
+def initialize_vector_db_for_codes(codes):
+    """Initialize vector database with only the specified message codes."""
+    try:
+        if not codes:
+            logger.warning("No message codes provided, skipping vector DB initialization")
+            return False
+        
+        logger.info(f"Initializing vector database for {len(codes)} message codes")
+        
+        # Scrape only the specified codes
+        messages = scrape_ardupilot_log_messages(codes=codes)
+        logger.info(f"Scraped {len(messages)} messages for the specified codes")
+        
+        # Insert into vector database
+        insert_into_vector_db(messages)
+        logger.info("Vector database initialization completed successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error initializing vector database: {e}")
+        return False
 
 class MessageData(BaseModel):
     """Model for incoming message data from frontend."""
@@ -92,6 +120,24 @@ async def upload_messages(message_data: MessageData):
             json.dump(data_to_store, f, indent=2, default=str)
         
         logger.info(f"Successfully saved messages for {file_id}")
+
+        # Parse the data and save dataframes
+        dfs = Parser(file_path)
+        save_dataframes_to_pickle(dfs, "dataframes/log_data.pkl")
+        
+        # Extract message codes and initialize vector database
+        message_codes = set([x[:-3] if '[' in x else x for x in dfs.keys()])
+        logger.info("Extracted message codes: " + str(message_codes))
+        
+        if message_codes:
+            logger.info("Initializing vector database with extracted message codes...")
+            vector_init_success = initialize_vector_db_for_codes(message_codes)
+            if vector_init_success:
+                logger.info("Vector database initialized successfully with message-specific codes")
+            else:
+                logger.warning("Vector database initialization failed")
+        else:
+            logger.warning("No message codes found, skipping vector database initialization")
         
         return MessageResponse(
             success=True,
@@ -100,7 +146,7 @@ async def upload_messages(message_data: MessageData):
             messageCount=data_to_store["messageCount"],
             timestamp=data_to_store["timestamp"]
         )
-        
+
     except Exception as e:
         logger.error(f"Error uploading messages: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to upload messages: {str(e)}")
@@ -139,12 +185,12 @@ async def list_message_files():
             try:
                 with open(file_path, 'r') as f:
                     data = json.load(f)
-                files.append({
-                    "fileId": data.get("fileId"),
-                    "fileName": data.get("fileName"),
-                    "timestamp": data.get("timestamp"),
-                    "messageCount": data.get("messageCount", 0)
-                })
+                    files.append({
+                            "fileId": data.get("fileId"),
+                            "fileName": data.get("fileName"),
+                            "timestamp": data.get("timestamp"),
+                            "messageCount": data.get("messageCount", 0)
+                        })
             except Exception as e:
                 logger.warning(f"Error reading {file_path}: {e}")
         
@@ -202,3 +248,41 @@ async def clear_all_messages():
     except Exception as e:
         logger.error(f"Error clearing all messages: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to clear messages: {str(e)}")
+
+@router.post("/initialize-vector-db")
+async def initialize_vector_database():
+    """Manually trigger vector database initialization for existing data."""
+    try:
+        logger.info("Manual vector database initialization requested")
+        
+        # Check if dataframe file exists
+        df_path = "dataframes/log_data.pkl.gz"
+        if not os.path.exists(df_path):
+            raise HTTPException(status_code=404, detail="No log data found. Please upload data first.")
+        
+        # Start vector database initialization
+        start_vector_db_initialization()
+        
+        return {
+            "success": True,
+            "message": "Vector database initialization started in background",
+            "status": get_vector_db_status()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error starting vector database initialization: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to start vector database initialization: {str(e)}")
+
+
+@router.get("/vector-db-status")
+async def get_vector_db_status_endpoint():
+    """Get the current status of the vector database."""
+    try:
+        status = get_vector_db_status()
+        return {
+            "success": True,
+            "status": status
+        }
+    except Exception as e:
+        logger.error(f"Error getting vector database status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get vector database status: {str(e)}")

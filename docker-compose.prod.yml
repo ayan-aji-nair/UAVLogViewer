@@ -38,6 +38,8 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - vectorstore_data:/app/vectorstore
     networks:
       - uav-network
     deploy:
@@ -78,6 +80,8 @@ services:
 
 volumes:
   redis_data:
+    driver: local
+  vectorstore_data:
     driver: local
 
 networks:

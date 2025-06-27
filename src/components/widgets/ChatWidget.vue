@@ -3,6 +3,9 @@
          v-bind:style="{width: width + 'px', height: height + 'px', top: top + 'px', left: left + 'px'}">
         <div id="paneContent">
             <span style="float: right; margin: 3px; cursor: pointer;" @click="close()"> X </span>
+            <div style="padding: 5px; border-bottom: 1px solid #dee2e6;">
+                <button @click="testProcessingMessage" style="font-size: 10px; padding: 2px 5px;">Test Processing</button>
+            </div>
             <div class="chat-messages">
                 <ul>
                     <li v-for="msg in messages" :key="msg.id" :class="['message', msg.role]">
@@ -12,8 +15,10 @@
                 </ul>
             </div>
             <div class="chat-input">
-                <input type="text" v-model="newMessage" @keyup.enter="sendMessage" placeholder="Type your message...">
-                <button @click="sendMessage" :disabled="!newMessage.trim()">
+                <input type="text" v-model="newMessage" @keyup.enter="sendMessage" 
+                       :placeholder="isProcessing ? 'Processing... Please wait' : 'Type your message...'" 
+                       :disabled="isProcessing">
+                <button @click="sendMessage" :disabled="!newMessage.trim() || isProcessing">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
@@ -24,6 +29,7 @@
 <script>
 import { store } from '../Globals.js'
 import { baseWidget } from './baseWidget'
+import { onMounted } from 'vue'
 
 export default {
     name: 'ChatWidget',
@@ -38,14 +44,34 @@ export default {
             top: 0,
             messages: [],
             newMessage: '',
-            sessionId: null
+            sessionId: null,
+            isProcessing: false,
+            processingMessageId: null
         }
     },
     created () {
         // Load existing session or create new one
         this.loadSession()
+        
+        // Listen for file processing events using the event hub
+        this.$eventHub.$on('fileProcessingStarted', this.onFileProcessingStarted)
+        this.$eventHub.$on('fileProcessingCompleted', this.onFileProcessingCompleted)
+        this.$eventHub.$on('fileProcessingFailed', this.onFileProcessingFailed)
+        
+        console.log('ChatWidget: Event listeners registered')
+    },
+    beforeDestroy () {
+        // Clean up event listeners
+        this.$eventHub.$off('fileProcessingStarted', this.onFileProcessingStarted)
+        this.$eventHub.$off('fileProcessingCompleted', this.onFileProcessingCompleted)
+        this.$eventHub.$off('fileProcessingFailed', this.onFileProcessingFailed)
     },
     methods: {
+        setup () {
+            // Required by baseWidget mixin - does nothing for ChatWidget
+            console.log('ChatWidget: Setup called')
+            this.testProcessingMessage()
+        },
         loadSession () {
             // Try to load existing session from localStorage
             const savedSession = localStorage.getItem('chatSession')
@@ -66,8 +92,49 @@ export default {
                 messages: this.messages
             }))
         },
+        onFileProcessingStarted () {
+            console.log('ChatWidget: File processing started event received')
+            // Show processing message
+            this.isProcessing = true
+            this.processingMessageId = Date.now()
+            this.messages.push({
+                id: this.processingMessageId,
+                role: 'system',
+                content: 'Processing .bin file... Please wait while I prepare the knowledge base for your log data.',
+                timestamp: new Date()
+            })
+            this.saveSession()
+        },
+        onFileProcessingCompleted (data) {
+            console.log('ChatWidget: File processing completed event received', data)
+            // Update processing message to show completion
+            this.isProcessing = false
+            if (this.processingMessageId) {
+                const processingMsg = this.messages.find(msg => msg.id === this.processingMessageId)
+                if (processingMsg) {
+                    processingMsg.content = `✅ Processing complete! I've analyzed your log data and prepared the knowledge base. You can now ask me questions about your flight data.`
+                    processingMsg.role = 'assistant'
+                }
+            }
+            this.processingMessageId = null
+            this.saveSession()
+        },
+        onFileProcessingFailed (error) {
+            console.log('ChatWidget: File processing failed event received', error)
+            // Update processing message to show error
+            this.isProcessing = false
+            if (this.processingMessageId) {
+                const processingMsg = this.messages.find(msg => msg.id === this.processingMessageId)
+                if (processingMsg) {
+                    processingMsg.content = `❌ Processing failed: ${error}. Please try uploading your file again.`
+                    processingMsg.role = 'system'
+                }
+            }
+            this.processingMessageId = null
+            this.saveSession()
+        },
         async sendMessage () {
-            if (!this.newMessage.trim()) return
+            if (!this.newMessage.trim() || this.isProcessing) return
 
             // Add user message to local state
             const userMessage = {
@@ -159,7 +226,15 @@ export default {
             this.messages = []
             this.sessionId = this.generateSessionId()
             this.saveSession()
-        }
+        },
+        testProcessingMessage () {
+            // Test method to manually trigger processing message
+            console.log('ChatWidget: Testing processing message')
+            this.onFileProcessingStarted()
+            setTimeout(() => {
+                this.onFileProcessingCompleted({ success: true })
+            }, 3000)
+        },
     },
     watch: {
         messages: {

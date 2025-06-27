@@ -5,6 +5,7 @@ Run with:
 from __future__ import annotations
 
 import os
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -65,6 +66,8 @@ async def root():
             "get_messages": "/api/upload/messages/{file_id}",
             "list_messages": "/api/upload/messages",
             "delete_messages": "/api/upload/messages/{file_id}",
+            "initialize_vector_db": "/api/upload/initialize-vector-db",
+            "vector_db_status": "/api/upload/vector-db-status",
             "docs": "/docs"
         }
     }
@@ -73,7 +76,26 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "service": "uav-chatbot-api"}
+    try:
+        # Check vector database status
+        from app.services.chatbot import UAVChatbotService
+        chatbot = UAVChatbotService()
+        vector_db_ready = chatbot._is_vector_db_ready()
+        
+        return {
+            "status": "healthy", 
+            "service": "uav-chatbot-api",
+            "vector_database_ready": vector_db_ready,
+            "ready_for_chat": vector_db_ready
+        }
+    except Exception as e:
+        return {
+            "status": "healthy", 
+            "service": "uav-chatbot-api",
+            "vector_database_ready": False,
+            "ready_for_chat": False,
+            "error": str(e)
+        }
 
 
 @app.exception_handler(Exception)
