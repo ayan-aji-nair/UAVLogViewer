@@ -53,7 +53,7 @@
                           <a class="check-font"> Radio Sticks </a>
                         </label>
                         <label>
-                          <i class="fa fa-comment circle"></i>
+                          <i class="fa fa-brain circle"></i>
                           <input type="checkbox" v-model="state.showChat">
                           <a class="check-font"> Chat </a>
                         </label>
