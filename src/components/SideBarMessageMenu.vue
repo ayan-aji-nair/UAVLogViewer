@@ -206,6 +206,7 @@ export default {
                 }
             }
             this.messageTypes = newMessages
+            console.log(this.messageTypes)
             this.$set(this.state, 'messageTypes', newMessages)
         },
         isPlotted (message, field) {
@@ -306,6 +307,8 @@ export default {
                     }
                 }
             }
+            console.log('Printing filtered data')
+            console.log(filtered)
             return filtered
         },
         availableMessagePresets () {

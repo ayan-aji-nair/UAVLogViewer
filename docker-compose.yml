@@ -32,6 +32,7 @@ services:
       - REDIS_PORT=6379
       - DEBUG=${DEBUG:-false}
       - CORS_ORIGINS=["http://localhost:8080", "http://frontend:8080"]
+      - ANONYMIZED_TELEMETRY=false
     depends_on:
       redis:
         condition: service_healthy

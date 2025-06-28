@@ -126,7 +126,7 @@ async def upload_messages(message_data: MessageData):
         save_dataframes_to_pickle(dfs, "dataframes/log_data.pkl")
         
         # Extract message codes and initialize vector database
-        message_codes = set([x[:-3] if '[' in x else x for x in dfs.keys()])
+        message_codes = set([x[:x.index('[')] if '[' in x else x for x in dfs.keys()])
         logger.info("Extracted message codes: " + str(message_codes))
         
         if message_codes:

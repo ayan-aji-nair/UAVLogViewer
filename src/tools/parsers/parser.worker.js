@@ -18,13 +18,32 @@ self.addEventListener('message', async function (event) {
             await parser.processData(data)
         } else {
             parser = new DataflashParser(true)
-            parser.processData(data, ['CMD', 'MSG', 'FILE', 'MODE', 'AHR2', 'ATT', 'GPS', 'POS',
-                'XKQ1', 'XKQ', 'NKQ1', 'NKQ2', 'XKQ2', 'PARM', 'MSG', 'STAT', 'EV', 'XKF4', 'FNCE'])
+            // First discover all available message types
+            parser.processData(data)
+            
+            // Get all available message types and parse them
+            const allMessageTypes = Object.keys(parser.messageTypes || {})
+            console.log('All discovered message types:', allMessageTypes)
+            
+            // Parse all available message types
+            for (const msgType of allMessageTypes) {
+                try {
+                    parser.parseAtOffset(msgType)
+                } catch (error) {
+                    console.warn(`Failed to parse message type ${msgType}:`, error)
+                }
+            }
+            
+            // Process files if FILE messages were parsed
+            if (parser.messages && parser.messages.FILE) {
+                parser.processFiles()
+            }
         }
 
     } else if (event.data.action === 'loadType') {
         if (!parser) {
             console.log('parser not ready')
+            return
         }
         parser.loadType(event.data.type.split('[')[0])
     } else if (event.data.action === 'trimFile') {

@@ -3,9 +3,6 @@
          v-bind:style="{width: width + 'px', height: height + 'px', top: top + 'px', left: left + 'px'}">
         <div id="paneContent">
             <span style="float: right; margin: 3px; cursor: pointer;" @click="close()"> X </span>
-            <div style="padding: 5px; border-bottom: 1px solid #dee2e6;">
-                <button @click="testProcessingMessage" style="font-size: 10px; padding: 2px 5px;">Test Processing</button>
-            </div>
             <div class="chat-messages">
                 <ul>
                     <li v-for="msg in messages" :key="msg.id" :class="['message', msg.role]">

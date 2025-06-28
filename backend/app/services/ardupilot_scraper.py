@@ -95,6 +95,9 @@ def insert_into_vector_db(messages, collection_name=VECTOR_COLLECTION_NAME):
     metadatas = []
     ids = []
     
+    # Track used IDs to prevent duplicates
+    used_ids = set()
+    
     for msg in messages:
         # Create main document with message info
         main_doc = f"Message: {msg['name']}\nDescription: {msg['description']}\n"
@@ -106,6 +109,17 @@ def insert_into_vector_db(messages, collection_name=VECTOR_COLLECTION_NAME):
             
             # Create individual field documents for better search
             field_doc = f"Message: {msg['name']}\nField: {field['name']}\nUnits: {field['units']}\nDescription: {field['description']}"
+            
+            # Ensure unique ID for field document
+            field_id = f"{msg['name']}_{field['name']}"
+            if field_id in used_ids:
+                # If duplicate, add a counter
+                counter = 1
+                while f"{field_id}_{counter}" in used_ids:
+                    counter += 1
+                field_id = f"{field_id}_{counter}"
+            used_ids.add(field_id)
+            
             documents.append(field_doc)
             metadatas.append({
                 "name": msg['name'],
@@ -113,17 +127,28 @@ def insert_into_vector_db(messages, collection_name=VECTOR_COLLECTION_NAME):
                 "type": "field",
                 "description": field['description']
             })
-            ids.append(f"{msg['name']}_{field['name']}")
+            ids.append(field_id)
         
-        # Add main message document
+        # Add main message document with unique ID
         main_doc += "\nFields:\n" + "\n".join(field_info)
+        
+        # Ensure unique ID for main message document
+        msg_id = msg['name']
+        if msg_id in used_ids:
+            # If duplicate, add a counter
+            counter = 1
+            while f"{msg_id}_{counter}" in used_ids:
+                counter += 1
+            msg_id = f"{msg_id}_{counter}"
+        used_ids.add(msg_id)
+        
         documents.append(main_doc)
         metadatas.append({
             "name": msg['name'],
             "type": "message",
             "description": msg['description']
         })
-        ids.append(msg['name'])
+        ids.append(msg_id)
     
     # Insert into vector DB
     collection.add(documents=documents, metadatas=metadatas, ids=ids)

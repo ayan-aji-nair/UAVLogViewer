@@ -243,6 +243,8 @@ export default {
             }, 1000) // 1 second debounce
         },
         sendToBackend () {
+            console.log('Printing expressions')
+            console.log(store.expressions)
             if (this.uploadInProgress || this.uploadCompleted) {
                 return
             }
@@ -252,9 +254,15 @@ export default {
             console.log('SideBarFileManager: Emitting fileProcessingStarted event')
             this.$eventHub.$emit('fileProcessingStarted')
             
+            // Use the messages that are already loaded in the state
+            const completeMessages = { ...this.state.messages }
+            console.log('Complete messages data:', completeMessages)
+            console.log('Total message types:', Object.keys(completeMessages).length)
+            
             const payload = {
-                messages: this.state.messages || {}
+                messages: completeMessages
             }
+            
             fetch('http://localhost:8000/api/upload/messages', {
                 method: 'POST',
                 headers: {
@@ -307,6 +315,8 @@ export default {
                 this.state.metadata = event.data.metadata
             } else if (event.data.messages) {
                 this.state.messages = event.data.messages
+                console.log('Printing messages')
+                console.log(this.state.messages)
                 console.log('Messages received, emitting messages event')
                 this.$eventHub.$emit('messages')
             } else if (event.data.messagesDoneLoading) {
@@ -316,11 +326,21 @@ export default {
                 this.state.messages[event.data.messageType] = event.data.messageList
                 console.log('Message type received, emitting messages event')
                 this.$eventHub.$emit('messages')
+            } else if (event.data.error) {
+                console.error('Worker error:', event.data.error)
+                // Handle specific error types
+                if (event.data.action === 'loadType') {
+                    console.warn(`Failed to load message type: ${event.data.messageType}`)
+                    // Don't emit error events for loadType failures as they're expected
+                } else {
+                    // Emit error for other types of errors
+                    this.$eventHub.$emit('workerError', event.data.error)
+                }
             } else if (event.data.files) {
                 this.state.files = event.data.files
                 this.$eventHub.$emit('messages')
             } else if (event.data.url) {
-                this.downloadFileFromURL(event.damessageType.url)
+                this.downloadFileFromURL(event.data.url)
             }
         }
         if (!this.eventListenerAdded) {

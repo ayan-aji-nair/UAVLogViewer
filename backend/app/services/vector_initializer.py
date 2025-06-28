@@ -7,6 +7,11 @@ from typing import Optional
 import logging
 from .ardupilot_scraper import scrape_ardupilot_log_messages, insert_into_vector_db
 from .dataframe_storage import load_dataframes_from_pickle
+import chromadb
+from chromadb.config import Settings
+
+# Disable ChromaDB telemetry to prevent PostHog errors
+os.environ["ANONYMIZED_TELEMETRY"] = "false"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
