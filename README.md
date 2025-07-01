@@ -27,20 +27,30 @@ cd UAVLogViewer
 
 ### 2. Set Up Environment Variables
 
-Create a `.env` file in the root directory:
-
+**Option A: Using make dev (Recommended)**
 ```bash
-# Required: OpenAI API Key for the AI chatbot
-OPENAI_API_KEY=your_openai_api_key_here
+# Set up environment files from examples
+cp .env.example .env
+cp backend/.env.example backend/.env
 
-# Optional: OpenAI Model (default: gpt-4)
-OPENAI_MODEL=gpt-4
+# Edit the .env files with your API keys
+# - Add your OpenAI API key to both .env files
+# - Optionally add your Cesium token for 3D maps
 
-# Optional: Cesium Token for 3D maps (get free token from https://cesium.com/ion/signup/)
-VUE_APP_CESIUM_TOKEN=your_cesium_token_here
+# Run the development environment
+make dev
+```
 
-# Optional: Debug mode (default: false)
-DEBUG=false
+**Option B: Manual Setup**
+```bash
+# Create .env file in root directory
+cp .env.example .env
+
+# Create .env file in backend directory  
+cp backend/.env.example backend/.env
+
+# Edit both .env files and add your OpenAI API key:
+# OPENAI_API_KEY=your_actual_openai_api_key_here
 ```
 
 ### 3. Run with Docker Compose
